@@ -1,0 +1,174 @@
+---
+title: "Tarea1"
+output: html_document
+---
+
+## Julio González González Durán
+
+# **Índice de Desarrollo Humano en la Zona Metropolitana de Mérida, Yucatán**
+
+El propósito de esta página es presentar una serie de mapas, gráficas y tablas que ayuden a comprender las desigualdades en la Zona Metropolitana de Mérida, Yucatán.
+
+### Gráfica
+Esta gráfica muestra el **Índice de Desarrollo Humano (IDH)** en la Zona Metropolitana de Mérida.
+
+```{r warning=FALSE, message=FALSE, cache=FALSE, echo=FALSE}
+options(scipen = 999)
+library(pacman)
+p_load(tidyverse, sf, viridis)
+idh <- read_csv("01_Datos/Indice de Desarrollo Humano.csv")
+pobreza <- read_csv("01_Datos/pobrezaExtrema.csv")
+mpios <- st_read("01_Datos/mpios.geojson", quiet = T)
+
+idh_municipio <- idh %>% 
+  filter(Year == 2015) %>% 
+  filter(Entidad == "Yucatan") %>% 
+  filter(Municipio %in% c("Abala", "Chicxulub Pueblo", "Conkal", "Kanasin", "Merida", "Progreso", "Tecoh", "Timucuy", "Tixkokob", "Tixpehual", "Ucu", "Uman", "Yaxkukul"))
+idh_municipio %>% 
+  ggplot()+
+  aes(x = Municipio,
+      y = Valor,
+      col = Valor)+
+  geom_point()+
+  labs(title = "Índice de Desarrollo Humano\nZona Metropolitana de Mérida",
+       subtitle = "Año: 2015", 
+       caption = "Fuente: Informe de Desarrollo Humano Municipal 2010-2015.\nTransformando México Desde lo Local")
+
+```
+
+### Mapa
+Este es mapa que ayudará a identificar la distribución del **Índice de Desarrollo Humano (IDH)** en la Zona Metropolitana de Mérida.
+
+```{r warning=FALSE, message=FALSE, cache=FALSE, echo=FALSE}
+
+mapaZMM <- merge(x = mpios,
+              y = idh_municipio,
+              by.x = "CVEGEO", 
+              by.y = "CODGEO", 
+              all.y = TRUE)
+
+mapaZMM %>% 
+  ggplot(aes(fill = Valor)) + 
+  geom_sf(color = "grey") + 
+  scale_fill_gradientn(colors = viridis(option = "plasma",
+                                        begin = 0, 
+                                        end = 1, 
+                                        n = 5)) + 
+  labs(title = "Índice de Desarrollo Humano\nZona Metropolitana de Mérida",
+       subtitle = "Año: 2015", 
+       caption = "Fuente: Informe de Desarrollo Humano Municipal 2010-2015.\nTransformando México Desde lo Local") + 
+  guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5)) + 
+  theme_bw() + 
+  theme(legend.position = "bottom") + 
+  theme(axis.text = element_blank(), 
+        panel.grid = element_blank(), 
+        panel.border = element_blank(), 
+        panel.background = element_rect(),
+        axis.ticks = element_blank()) + 
+  theme(plot.title = element_text(hjust = 0.5, 
+                                  colour = "black", 
+                                  family = "Arial", 
+                                  face = "bold", 
+                                  size = 15), 
+        plot.subtitle = element_text(hjust = 0.5, 
+                                     colour = "black", 
+                                     family = "Arial", 
+                                     face = "bold", 
+                                     size = 15), 
+        plot.caption = element_text(colour = "black", 
+                                    hjust = 0.5))
+
+```
+
+### Gráfica interactiva
+
+En esta gráfica ahora podrás conocer el **valor del IDH** de cada localidad. Solo desliza el cursos y colócalo encima del punto.
+
+```{r warning=FALSE, message=FALSE, cache=FALSE, echo=FALSE}
+p_load(tidyverse, 
+       plotly, 
+       readxl, 
+       scales)
+
+idh <- read_csv("01_Datos/Indice de Desarrollo Humano.csv")
+pobreza <- read_csv("01_Datos/pobrezaExtrema.csv")
+mpios <- st_read("01_Datos/mpios.geojson", quiet = T)
+
+idh_municipioG <- idh %>% 
+  filter(Year == 2015) %>% 
+  filter(Entidad == "Yucatan") %>% 
+  filter(Municipio %in% c("Abala", "Chicxulub Pueblo", "Conkal", "Kanasin", "Merida", "Progreso", "Tecoh", "Timucuy", "Tixkokob", "Tixpehual", "Ucu", "Uman", "Yaxkukul"))
+
+plot <- idh_municipioG %>% 
+  ggplot()+
+  aes(x = Municipio,
+      y = Valor,
+      col = Valor,
+      text = paste0("<b>Valor: </b>", Valor))+
+  geom_point()+
+  labs(title = "Índice de Desarrollo Humano\nZona Metropolitana de Mérida",
+       subtitle = "Año: 2015", 
+       caption = "Fuente: Informe de Desarrollo Humano Municipal 2010-2015.\nTransformando México Desde lo Local") +
+  theme(axis.text.x = element_text(angle = 45))
+
+ggplotly(plot, tooltip = "text") %>% 
+  config(displayModeBar = F)
+
+```
+
+### Mapa interactivo
+
+Para conocer el nombre y valor del IDH de cada localidad,  desliza el cursos y colócalo encima del área.
+
+```{r warning=FALSE, message=FALSE, cache=FALSE, echo=FALSE}
+
+library(sf)
+library(leaflet)
+
+# mpios <- st_read("01_Datos/mpios.geojson", quiet = T)
+# idh <- read_csv("01_Datos/Indice de Desarrollo Humano.csv")
+# pobreza <- read_csv("01_Datos/pobrezaExtrema.csv")
+# 
+# idh_municipioY <- idh %>%
+#   filter(Year == 2015) %>%
+#   filter(Entidad == "Yucatan") %>%
+#   filter(Municipio %in% c("Abala", "Chicxulub Pueblo", "Conkal", "Kanasin", "Merida", "Progreso", "Tecoh", "Timucuy", "Tixkokob", "Tixpehual", "Ucu", "Uman", "Yaxkukul"))
+# 
+# mapa <- merge(x = mpios,
+#       y = idh_municipioY,
+#       by.x = "CVEGEO",
+#       by.y = "CODGEO",
+#       all.y = TRUE)
+
+# mapaZMM %>%
+# ggplot(aes(fill = Valor)) +
+# geom_sf()
+
+# st_crs(mapaZMM)
+
+leaflet(mapaZMM) %>%
+  addPolygons() %>% 
+  addTiles() %>% 
+  addProviderTiles("CartoDB.Positron")
+
+```
+
+
+### Tabla
+Esta **tabla** ayudará a entender a comparar el IDH de la Zona Metropolitana de Mérida, Yucatán, en 2015.
+
+| Municipio      | IDH         | 
+|----------------|-------------|
+| Abala          |   0.648     |
+| Chicxulub P.   |   0.748     |
+| Conkal         |   0.788     |
+| Kanasin        |   0.751     |
+| Merida         |   0.832     |
+| Progreso       |   0.778     |
+| Tecoh          |   0.661     |
+| Timucuy        |   0.649     |
+| Tixkokob       |   0.766     |
+| Tixpehual      |   0.746     |
+| Ucu            |   0.709     |
+| Uman           |   0.742     |
+| Yaxkukul       |   0.751     |
